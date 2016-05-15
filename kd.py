@@ -1,18 +1,33 @@
 '''
 Implement a general kdtree
+
+Input:
+data_class - requires:
+    method: at_depth 
+        returns the data to compare at any given depth
+    method: distance
+        returns the distance from the current node to the given node
 '''
 
 def generate_tree_class(data_class):
     '''
     generates a tree 
     '''
+    if not hasattr(data_class, 'at_depth'):
+        raise TypeError('Data class not compatible with KDTree. It needs an at_depth method')
+    if not hasattr(data_class, 'distance'):
+        raise TypeError('Data class not compatible with KDTree. It needs a depth method')
+
     class KDTree(data_class):
         def __init__(self, *args, **kwargs):
-            super(self, KDNode).__init__(*args, **kwargs)
+            super(KDTree, self).__init__(*args, **kwargs)
             self.__kd_left = None
             self.__kd_right = None
             self.__kd_parent = None
-            self.__kd_depth = None
+            self.__kd_depth = 0
+            print('KDTree __init__ %s %s' % (self.__kd_right, self.__kd_parent))
+            print(dir(self))
+            print('self getattr: %s' % (getattr(self, '_KDTree__kd_right')))
 
         def __kd_set_parent(self, parent):
             self.__kd_parent = parent
@@ -102,6 +117,10 @@ def generate_tree_class(data_class):
                 else:
                     side = 'right'
 
+                if not hasattr(level_node, '__kd_'+side):
+                    str_ = 'node of type '+str(type(level_node))+' doesn"t have __kd_'+side
+                    print(str_)
+                    raise TypeError(str_)
                 if getattr(level_node, '__kd_'+side) is None:
                     new_node.__kd_set_parent(level_node)
                     setattr(level_node, '__kd_set_'+side, new_node)
