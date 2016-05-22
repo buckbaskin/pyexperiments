@@ -6,7 +6,12 @@ given a csv, check:
         columns as the rest of the rows?
     type consistency: for each row, does the data have the same type as most of
         the rest of the data (boolean, int, float, text?)
+    value consistency: for each numerical row, get the average, median and std 
+        deviation. If there are outliers (3x std dev) -> error or the average and median
+        are a wide spread (2x std dev? 1x std dev?) then the distribution is 
+        non gaussian -> warning.
 '''
+
 import csv
 import itertools
 import sys
@@ -127,6 +132,16 @@ class TypeCheck(object):
             col_index += 1
 
         return ''
+
+class ValueCheck(object):
+    def __init__(self):
+        pass
+
+    def next_line(self):
+        pass
+
+    def report(self):
+        pass
 
 def consistency_report(csv_filename):
     shapec = ShapeCheck()
