@@ -54,15 +54,19 @@ class PrintTreeVisitor(ast.NodeVisitor):
         # print('"incoming" state %s' % self.state)
         ast.NodeVisitor.generic_visit(self, node)
         # print('end potential function test '+str(node.name))
+        if 'possible_branches' not in self.state:
+            self.state['possible_branches'] = 1
+        print('function has %d branches to test' % (self.state['possible_branches']))
         self.state = incoming_state
 
     def visit_If(self, node):
-        print('at a branching point if')
+        # print('at a branching point if')
 
         incoming_state = deepcopy(self.state)
 
         if 'inside' in self.state:
-            print('if-branch in %s' % (self.state['inside']))
+            # print('if-branch in %s' % (self.state['inside']))
+            pass
         else:
             self.state['inside'] = 'if'
         self.state = {'inside': self.state['inside']+'-if'}
@@ -82,7 +86,7 @@ class PrintTreeVisitor(ast.NodeVisitor):
             except KeyError:
                 body_branch_accum += 1
         
-        print('branches in body: %d' % (body_branch_accum))
+        # print('branches in body: %d' % (body_branch_accum))
 
         self.state = incoming_state2
         self.state['possible_branches'] = 0
@@ -95,14 +99,16 @@ class PrintTreeVisitor(ast.NodeVisitor):
             except KeyError:
                 else_branch_accum += 1
         
-        print('branches in else: %d' % (else_branch_accum))
+        # print('branches in else: %d' % (else_branch_accum))
 
         self.state = incoming_state
         self.state['possible_branches'] = body_branch_accum + else_branch_accum
         if 'inside' in self.state:
-            print('end if in %s, %d branches' % (self.state['inside'], self.state['possible_branches'],))
+            # print('end if in %s, %d branches' % (self.state['inside'], self.state['possible_branches'],))
+            pass
         else:
-            print('end a branching point if, %d branches at this point.' % self.state['possible_branches'])
+            # print('end a branching point if, %d branches at this point.' % self.state['possible_branches'])
+            pass
 
     def visit_Return(self, node):
         print('at return "leaf"')

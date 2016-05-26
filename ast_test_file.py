@@ -1,8 +1,8 @@
 def hello_world(a, b):
     if a:
-        return 1
-    elif b:
-        print('b!')
-        return 2
+        if a and b:
+            return 1
+        else:
+            return -1
     else:
         return 0
