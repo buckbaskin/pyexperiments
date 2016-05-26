@@ -1,62 +1,113 @@
 import ast
 from ast import parse
 
+from copy import deepcopy
+
 import functools
 from functools import partial
 
-def inject_state_into_object(object, new_state):
-    print('inject state')
-    for element in dir(object):
-        if element[0]==('_'):
-            continue
-        if element == 'visit':
-            continue
-        if hasattr(getattr(object, element), '__call__'):
-            intermediate = partial(getattr(object, element), state=new_state)
-            setattr(object, element, intermediate)
-
 class PrintTreeVisitor(ast.NodeVisitor):
-    def generic_visit(self, node, state=None):
-        print('generic_visit to: %s' % (type(node).__name__))
+    def __init__(self):
+        self.state = {}
+        self.state['top_level_funcs'] = 0
+        self.state['func_count'] = 0
+
+    def generic_visit(self, node):
+        # print('generic_visit to: %s' % (type(node).__name__))
         ast.NodeVisitor.generic_visit(self, node)
 
-    def visit_Module(self, node, state=None):
+    def visit_Module(self, node):
         '''
         Known children:
         body (list of expressions?/statements?)
         '''
         print('override Module. begin test analysis')
-        print('body: %s' % node.body)
-        if state is None:
-            state = {}
-        state['module_name'] = 'a module has no name'
-        inject_state_into_object(self, state)
+        # print('body: %s' % node.body)
+        self.state['module_name'] = 'a module has no name'
+        for ast_obj in node.body:
+            if isinstance(ast_obj, ast.FunctionDef):
+                self.state['top_level_funcs'] += 1
         ast.NodeVisitor.generic_visit(self, node)
 
-    def visit_Load(self, node, state=None):
+        # print('I found %d functions and %d top level functions to test' % 
+        #     (self.state['func_count'], self.state['top_level_funcs'],))
+
+    def visit_Load(self, node):
         pass
 
-    def visit_FunctionDef(self, node, state=None):
+    def visit_FunctionDef(self, node):
         '''
         Known children:
         arguments
         arg
         body?
         '''
-        print('begin potential function test '+str(node.name))
-        print('incoming state %s' % state)
+        self.state['func_count'] += 1
+        # print('begin potential function test '+str(node.name))
+
+        incoming_state = deepcopy(self.state)
+
+        # print('incoming state %s' % self.state)
+
+        self.state = {'inside': node.name}
+
+        # print('"incoming" state %s' % self.state)
         ast.NodeVisitor.generic_visit(self, node)
-        print('end potential function test '+str(node.name))
+        # print('end potential function test '+str(node.name))
+        self.state = incoming_state
 
-    # def visit_If(self, node):
-    #     print('at a branching point if')
-    #     ast.NodeVisitor.generic_visit(self, node)
-    #     print('end a branching point if')
+    def visit_If(self, node):
+        print('at a branching point if')
 
-    # def visit_Return(self, node):
-    #     print('at function return')
-    #     ast.NodeVisitor.generic_visit(self, node)
-    #     print('end a function return')
+        incoming_state = deepcopy(self.state)
+
+        if 'inside' in self.state:
+            print('if-branch in %s' % (self.state['inside']))
+        else:
+            self.state['inside'] = 'if'
+        self.state = {'inside': self.state['inside']+'-if'}
+
+        incoming_state2 = deepcopy(self.state)
+
+        # print('if (%s):\n    %s' % (node.test, node.body,))
+        # if len(node.orelse) > 0:
+        #     print('else:\n    %s' % (node.orelse))
+
+        self.state['possible_branches'] = 0
+        body_branch_accum = 0
+        for child in node.body:
+            ast.NodeVisitor.visit(self, child)
+            try:
+                body_branch_accum += self.state['possible_branches']
+            except KeyError:
+                body_branch_accum += 1
+        
+        print('branches in body: %d' % (body_branch_accum))
+
+        self.state = incoming_state2
+        self.state['possible_branches'] = 0
+
+        else_branch_accum = 0
+        for child in node.orelse:
+            ast.NodeVisitor.visit(self, child)
+            try:
+                else_branch_accum += self.state['possible_branches']
+            except KeyError:
+                else_branch_accum += 1
+        
+        print('branches in else: %d' % (else_branch_accum))
+
+        self.state = incoming_state
+        self.state['possible_branches'] = body_branch_accum + else_branch_accum
+        if 'inside' in self.state:
+            print('end if in %s, %d branches' % (self.state['inside'], self.state['possible_branches'],))
+        else:
+            print('end a branching point if, %d branches at this point.' % self.state['possible_branches'])
+
+    def visit_Return(self, node):
+        print('at return "leaf"')
+        self.state['possible_branches'] = 1
+        ast.NodeVisitor.generic_visit(self, node)
 
     # def visit_BinOp(self, node):
     #     print(type(node))
