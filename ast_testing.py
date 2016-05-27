@@ -51,12 +51,18 @@ class PrintTreeVisitor(ast.NodeVisitor):
 
         self.state = {'inside': node.name}
 
-        # print('"incoming" state %s' % self.state)
-        ast.NodeVisitor.generic_visit(self, node)
+        branch_counter = 1
+        
+        for i in range(0, len(node.body)):
+            print(node.body[i])
+            ast.NodeVisitor.visit(self, node.body[i])
+            print('outset: %d' % (self.state['possible_branches']))
+            branch_counter *= self.state['possible_branches']
+
         # print('end potential function test '+str(node.name))
         if 'possible_branches' not in self.state:
             self.state['possible_branches'] = 1
-        print('function has %d branches to test' % (self.state['possible_branches']))
+        print('function has %d branches to test' % (branch_counter,))
         self.state = incoming_state
 
     def visit_If(self, node):
