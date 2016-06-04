@@ -13,8 +13,11 @@ class PrintTreeVisitor(ast.NodeVisitor):
         self.state['func_count'] = 0
 
     def generic_visit(self, node):
-        # print('generic_visit to: %s' % (type(node).__name__))
+        print('generic_visit to: %s' % (type(node).__name__))
         ast.NodeVisitor.generic_visit(self, node)
+
+    def visit_Assign(self, node):
+        print('override visit to Assign')
 
     def visit_Module(self, node):
         '''
@@ -56,8 +59,11 @@ class PrintTreeVisitor(ast.NodeVisitor):
         for i in range(0, len(node.body)):
             print(node.body[i])
             ast.NodeVisitor.visit(self, node.body[i])
-            print('outset: %d' % (self.state['possible_branches']))
-            branch_counter *= self.state['possible_branches']
+            try:
+                print('outset: %d' % (self.state['possible_branches']))
+                branch_counter *= self.state['possible_branches']
+            except KeyError:
+                pass
 
         # print('end potential function test '+str(node.name))
         if 'possible_branches' not in self.state:
@@ -85,18 +91,22 @@ class PrintTreeVisitor(ast.NodeVisitor):
 
         self.state['possible_branches'] = 0
         body_branch_accum = 0
+        print('if inside')
         for child in node.body:
             ast.NodeVisitor.visit(self, child)
             try:
                 body_branch_accum += self.state['possible_branches']
             except KeyError:
                 body_branch_accum += 1
+        if body_branch_accum <= 1:
+            body_branch_accum = 1
         
         # print('branches in body: %d' % (body_branch_accum))
 
         self.state = incoming_state2
         self.state['possible_branches'] = 0
 
+        print('else inside')
         else_branch_accum = 0
         for child in node.orelse:
             ast.NodeVisitor.visit(self, child)
@@ -104,6 +114,9 @@ class PrintTreeVisitor(ast.NodeVisitor):
                 else_branch_accum += self.state['possible_branches']
             except KeyError:
                 else_branch_accum += 1
+
+        if else_branch_accum <= 1:
+            else_branch_accum = 1
         
         # print('branches in else: %d' % (else_branch_accum))
 
@@ -135,3 +148,10 @@ tree = parse(fileContents, '<string>', 'exec')
 print(tree)
 
 visitor.visit(tree)
+
+class AnalyzeTreeVisitor(ast.NodeVisitor):
+    '''
+    Walk the tree and advise tests to build
+    '''
+    def visit_If(self, node):
+        pass
