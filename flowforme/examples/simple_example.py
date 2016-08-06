@@ -12,5 +12,6 @@ print(dir(flowforme))
 def simpleExample(a, b):
     return a + b
 
+print('run function ->')
 print(simpleExample(1, 2))
 
