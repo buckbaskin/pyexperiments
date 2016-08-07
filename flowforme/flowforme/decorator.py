@@ -43,7 +43,7 @@ class TFReviewer(ast.NodeVisitor):
     
     def inputs(self):
         '''Return a list of input names that need to be placeholder-replaced'''
-        print('inputs to the graph? %s' % (self.__input_set,))
+        # print('inputs to the graph? %s' % (self.__input_set,))
         return list(self.__input_set)
 
     # override for behavior
@@ -55,8 +55,8 @@ class TFReviewer(ast.NodeVisitor):
             return (result_node, [])
         except TFReviewer.StopVisitor as done_processing:
             # This is a happy path where the TFReviwer exited early
-            print('more happy path: %s' % (done_processing.result_node,))
-            return (done_processing.result_node, done_processing.inputs,)
+            print('more happy path: %s %s' % (done_processing.result_node, done_processing.inputs,))
+            return (self.__graph_elements[done_processing.result_node], done_processing.inputs,)
 
     def generic_visit(self, node):
         print('generic: %s' % (type(node).__name__,))
@@ -65,50 +65,51 @@ class TFReviewer(ast.NodeVisitor):
 
     def visit_args(self, func_args):
         # TODO(buckbaskin): implement this (see visit_FunctionDef)
-        pass
+        print('visit_args -> %s' % (func_args,))
+        print(ast.dump(func_args))
+        for arg in func_args.args:
+            yield arg.arg
 
     def visit_BinOp(self, binop):
-        print('BinOp(expr left, operator op, expr right)')
+        # print('BinOp(expr left, operator op, expr right)')
 
-        print('binop -> %s' % (ast.dump(binop),))
-        print('expr left -> %s' % (ast.dump(binop.left),))
+        # print('binop -> %s' % (ast.dump(binop),))
+        # print('expr left -> %s' % (ast.dump(binop.left),))
         left_id = self.visit(binop.left)
-        print('expr right -> %s' % (ast.dump(binop.right),))
+        # print('expr right -> %s' % (ast.dump(binop.right),))
         right_id = self.visit(binop.right)
-        print('operator op -> %s' % (ast.dump(binop.op),))
+        # print('operator op -> %s' % (ast.dump(binop.op),))
         if isinstance(binop.op, ast.Add):
-            print('this is where I will add %s and %s' % (left_id, right_id,))
-            my_id = self.nextable()
-            self.__graph_elements['add%s' % (my_id,)] = self.__graph_elements[left_id] + self.__graph_elements[right_id]
+            # print('this is where I will add %s and %s' % (left_id, right_id,))
+            my_id = 'add%s' % (self.nextable(),)
+            self.__graph_elements[my_id] = tf.add(self.__graph_elements[left_id], self.__graph_elements[right_id], name=my_id)
             return my_id
 
     def visit_body(self, func_body):
-        # TODO(buckbaskin): implement this (see visit_FunctionDef)
-        pass
+        for stmt in func_body:
+            if isinstance(stmt, ast.Return):
+                return self.visit_Return(stmt)
+            else:
+                ast.NodeVisitor.generic_visit(stmt)
+        self.__graph_elements['None'] = None
+        return 'None'
 
     def visit_FunctionDef(self, fdef):
-        print('FunctionDef(identifier name, arguments args, stmt* body, expr* decorator_list, expr? returns)')
-        print('inputs -> %s' % (ast.dump(fdef.args),))
+        # print('FunctionDef(identifier name, arguments args, stmt* body, expr* decorator_list, expr? returns)')
         inputs = self.visit_args(fdef.args)
         result_node = self.visit_body(fdef.body)
-        returns = self.visit_returns(fdef.returns)
-        # result_node = ast.NodeVisitor.generic_visit(self, fdef)
         raise TFReviewer.StopVisitor(result_node=result_node, inputs=inputs)
 
     def visit_Name(self, name):
-        print('Name -> %s' % (ast.dump(name),))
+        # print('Name -> %s' % (ast.dump(name),))
         self.__input_set.add(name.id)
         if name.id not in self.__graph_elements:
             self.__graph_elements[name.id] = tf.placeholder(self.__dtype, name=name.id)
         return name.id
 
     def visit_Return(self, ret):
-        print('Return -> %s' % (ast.dump(ret),))
-        ast.NodeVisitor.generic_visit(self, ret)
-
-    def visit_returns(self, func_ret):
-        # TODO(buckbaskin): implement this (see visit_FunctionDef)
-        pass
+        # print('Return -> %s' % (ast.dump(ret),))
+        return self.visit(ret.value)
 
 def _buildTFGraph(func, default_dtype=tf.float32):
     func_source = inspect.getsource(func)
@@ -125,9 +126,18 @@ def flowforme(default_dtype=tf.float32):
                 return None
             return noner
         def intermediate(*args, **kwargs):
+            print('intermediate args %s and kwargs %s' % (args, kwargs,))
+            inputs_index = 0
+            args_index = 0
+            feed_dict = {}
+            for arg in args:
+                feed_dict[inputs[inputs_index]] = args[args_index]
+                inputs_index += 1
+                args_index += 1
+            feed_dict.update(kwargs)
             with tf.Session() as sess:
                 init = tf.initialize_all_variables()
-                sess.run(init)
+                sess.run(init, feed_dict=feed_dict)
                 return sess.run(result_node)
         intermediate.__name__ = func.__name__
         return intermediate
