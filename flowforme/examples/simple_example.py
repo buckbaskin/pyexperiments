@@ -8,7 +8,7 @@ print(dir(flowforme))
 #  that get added with a tf.add(a, b)
 # Then, similar to couchpotato, when the value is actually used,
 #  its value is evaluated (but this time with tf)
-@flowforme.flowforme
+@flowforme.flowforme()
 def simpleExample(a, b):
     return a + b
 
