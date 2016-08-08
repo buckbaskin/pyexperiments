@@ -46,6 +46,9 @@ class TFReviewer(ast.NodeVisitor):
         # print('inputs to the graph? %s' % (self.__input_set,))
         return list(self.__input_set)
 
+    def graph(self):
+        return dict(self.__graph_elements)
+
     # override for behavior
     def traverse(self, node):
         try:
@@ -56,7 +59,7 @@ class TFReviewer(ast.NodeVisitor):
         except TFReviewer.StopVisitor as done_processing:
             # This is a happy path where the TFReviwer exited early
             print('more happy path: %s %s' % (done_processing.result_node, done_processing.inputs,))
-            return (self.__graph_elements[done_processing.result_node], done_processing.inputs,)
+            return (self.__graph_elements[done_processing.result_node], done_processing.inputs, dict(self.__graph_elements))
 
     def generic_visit(self, node):
         print('generic: %s' % (type(node).__name__,))
@@ -67,8 +70,12 @@ class TFReviewer(ast.NodeVisitor):
         # TODO(buckbaskin): implement this (see visit_FunctionDef)
         print('visit_args -> %s' % (func_args,))
         print(ast.dump(func_args))
+        arg_names = []
         for arg in func_args.args:
-            yield arg.arg
+            print('visiting arg %s and adding a placeholder' % (arg.arg,))
+            self.__graph_elements[arg.arg] = tf.placeholder(self.__dtype, name=arg.arg)
+            arg_names.append(arg.arg)
+        return arg_names
 
     def visit_BinOp(self, binop):
         # print('BinOp(expr left, operator op, expr right)')
@@ -115,12 +122,13 @@ def _buildTFGraph(func, default_dtype=tf.float32):
     func_source = inspect.getsource(func)
     func_ast = ast.parse(func_source)
     builder = TFReviewer(default_dtype)
-    result_node = builder.traverse(func_ast)
-    return (result_node, builder.inputs(),)
+    result_node, inputs, graph = builder.traverse(func_ast)
+    print('BuildGraph -> result %s and graph %s' % (result_node, graph,))
+    return (result_node, inputs, graph,)
 
 def flowforme(default_dtype=tf.float32):
     def flowforme_wrapper(func):
-        (result_node, inputs,) = _buildTFGraph(func, default_dtype)
+        (result_node, inputs, graph,) = _buildTFGraph(func, default_dtype)
         if result_node is None:
             def noner(*args, **kwargs):
                 return None
@@ -131,14 +139,17 @@ def flowforme(default_dtype=tf.float32):
             args_index = 0
             feed_dict = {}
             for arg in args:
-                feed_dict[inputs[inputs_index]] = args[args_index]
+                print('the arg is real. The arg is %s' % (arg,))
+                if default_dtype == tf.float32:
+                    feed_dict[graph[inputs[inputs_index]]] = float(arg)
+                else:
+                    feed_dict[graph[inputs[inputs_index]]] = arg
                 inputs_index += 1
-                args_index += 1
             feed_dict.update(kwargs)
             with tf.Session() as sess:
                 init = tf.initialize_all_variables()
-                sess.run(init, feed_dict=feed_dict)
-                return sess.run(result_node)
+                sess.run(init)
+                return sess.run(result_node, feed_dict=feed_dict)
         intermediate.__name__ = func.__name__
         return intermediate
     return flowforme_wrapper
