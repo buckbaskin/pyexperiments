@@ -17,6 +17,4 @@ class FlowedIntegerType(__old_int):
 global int
 int = FlowedIntegerType
 '''
-
 from flowforme.decorator import flowforme
-
