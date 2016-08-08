@@ -12,6 +12,7 @@ import tensorflow as tf
 # use ast.NodeVisitor and ast.NodeTransformer to walk the ast
 #  and rewrite the code with Tensorflow operations
 
+
 class TFReviewer(ast.NodeVisitor):
     '''
     Use to walk the ast, building up a TF graph that matches the ast
@@ -73,14 +74,14 @@ class TFReviewer(ast.NodeVisitor):
     def generic_visit(self, node):
         ast.NodeVisitor.generic_visit(self, node)
 
-
     # pylint: disable=invalid-name
     # it incorrectly identifies these overridden methods as invalid names
     def visit_args(self, func_args):
         '''"visit" the arguments node for an ast.FunctionDef'''
         arg_names = []
         for arg in func_args.args:
-            self.__graph_elements[arg.arg] = tf.placeholder(self.__dtype, name=arg.arg)
+            self.__graph_elements[arg.arg] = tf.placeholder(
+                self.__dtype, name=arg.arg)
             arg_names.append(arg.arg)
         return arg_names
 
@@ -119,7 +120,8 @@ class TFReviewer(ast.NodeVisitor):
         TODO(buckbaskin): known issue: this doesn't do var assignment yet '''
         self.__input_set.add(name.id)
         if name.id not in self.__graph_elements:
-            self.__graph_elements[name.id] = tf.placeholder(self.__dtype, name=name.id)
+            self.__graph_elements[name.id] = tf.placeholder(
+                self.__dtype, name=name.id)
         return name.id
 
     def visit_Return(self, ret):
@@ -132,12 +134,14 @@ class TFReviewer(ast.NodeVisitor):
     # it incorrectly identifies these overridden methods as invalid names
     # pylint: enable=invalid-name
 
+
 def _build_tf_graph(func, default_dtype=tf.float32):
     func_source = inspect.getsource(func)
     func_ast = ast.parse(func_source)
     builder = TFReviewer(default_dtype)
     result_node, inputs, graph = builder.traverse(func_ast)
     return (result_node, inputs, graph,)
+
 
 def flowforme(default_dtype=tf.float32):
     '''
@@ -154,6 +158,7 @@ def flowforme(default_dtype=tf.float32):
         that uses TF to do the code evaluation
         '''
         (result_node, inputs, graph,) = _build_tf_graph(func, default_dtype)
+
         def intermediate(*args, **kwargs):
             '''This is programmatically overwritten. Rewritten with TF'''
             inputs_index = 0
