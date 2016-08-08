@@ -35,7 +35,7 @@ class TFReviewer(ast.NodeVisitor):
         return str(self.__next)
 
     def result_node(self):
-        print('graph at result -> %s' % (self.__graph_elements,))
+        # print('graph at result -> %s' % (self.__graph_elements,))
         if 'result_node' in self.__graph_elements:
             return self.__graph_elements['result_node']
         else:
@@ -54,25 +54,25 @@ class TFReviewer(ast.NodeVisitor):
         try:
             result_node = ast.NodeVisitor.generic_visit(self, node)
             # This will only happen if the TFReviewer did not exit early
-            print('less happy path: %s' % (result_node,))
+            # print('less happy path: %s' % (result_node,))
             return (result_node, [])
         except TFReviewer.StopVisitor as done_processing:
             # This is a happy path where the TFReviwer exited early
-            print('more happy path: %s %s' % (done_processing.result_node, done_processing.inputs,))
+            # print('more happy path: %s %s' % (done_processing.result_node, done_processing.inputs,))
             return (self.__graph_elements[done_processing.result_node], done_processing.inputs, dict(self.__graph_elements))
 
     def generic_visit(self, node):
-        print('generic: %s' % (type(node).__name__,))
-        print('with info: %s' % (ast.dump(node),))
+        # print('generic: %s' % (type(node).__name__,))
+        # print('with info: %s' % (ast.dump(node),))
         ast.NodeVisitor.generic_visit(self, node)
 
     def visit_args(self, func_args):
         # TODO(buckbaskin): implement this (see visit_FunctionDef)
-        print('visit_args -> %s' % (func_args,))
-        print(ast.dump(func_args))
+        # print('visit_args -> %s' % (func_args,))
+        # print(ast.dump(func_args))
         arg_names = []
         for arg in func_args.args:
-            print('visiting arg %s and adding a placeholder' % (arg.arg,))
+            # print('visiting arg %s and adding a placeholder' % (arg.arg,))
             self.__graph_elements[arg.arg] = tf.placeholder(self.__dtype, name=arg.arg)
             arg_names.append(arg.arg)
         return arg_names
@@ -123,7 +123,7 @@ def _buildTFGraph(func, default_dtype=tf.float32):
     func_ast = ast.parse(func_source)
     builder = TFReviewer(default_dtype)
     result_node, inputs, graph = builder.traverse(func_ast)
-    print('BuildGraph -> result %s and graph %s' % (result_node, graph,))
+    # print('BuildGraph -> result %s and graph %s' % (result_node, graph,))
     return (result_node, inputs, graph,)
 
 def flowforme(default_dtype=tf.float32):
@@ -134,12 +134,12 @@ def flowforme(default_dtype=tf.float32):
                 return None
             return noner
         def intermediate(*args, **kwargs):
-            print('intermediate args %s and kwargs %s' % (args, kwargs,))
+            # print('intermediate args %s and kwargs %s' % (args, kwargs,))
             inputs_index = 0
             args_index = 0
             feed_dict = {}
             for arg in args:
-                print('the arg is real. The arg is %s' % (arg,))
+                # print('the arg is real. The arg is %s' % (arg,))
                 if default_dtype == tf.float32:
                     feed_dict[graph[inputs[inputs_index]]] = float(arg)
                 else:
