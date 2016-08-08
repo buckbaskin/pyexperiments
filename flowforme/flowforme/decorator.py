@@ -97,7 +97,7 @@ class TFReviewer(ast.NodeVisitor):
             if isinstance(stmt, ast.Return):
                 return self.visit_Return(stmt)
             else:
-                ast.NodeVisitor.generic_visit(stmt)
+                ast.NodeVisitor.generic_visit(self, stmt)
         self.__graph_elements['None'] = None
         return 'None'
 
