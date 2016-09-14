@@ -4,7 +4,14 @@ def fact(n: int, accum: int = 1) -> int:
     else:
         return accum
 
-# print('Hi, my name is (what?)\nMy name is (who?)\nMy name is %s' % (__name__,))
+import sys
+from typing import IO
+def get_sys_out(error: bool) -> IO[str]:
+    if error:
+        return sys.stderr
+    else:
+        return sys.stdout
+
 if __name__ == '__main__':
     '''
     python3
@@ -20,4 +27,6 @@ if __name__ == '__main__':
     mypy
     > error: Argument 2 to "fact" has incompatible type "str"; expected "int"
     '''
-    print(fact(2, 'john'))
+    # print(fact(2, 'john'))
+    print(get_sys_out(True))
+    print(get_sys_out(False))
