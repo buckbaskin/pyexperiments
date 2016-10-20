@@ -25,6 +25,7 @@ for item in dir(jane.__code__):
 
 codestring = co.co_code
 constants = co.co_consts
+print('stack size of jane: %d' % (int(co.co_stacksize),))
 code_ = CodeType(
     co.co_argcount+1,
     co.co_kwonlyargcount,
@@ -62,9 +63,6 @@ improved = FunctionType(code = code_, globals = jane.__globals__, name = 'johnny
 print('improved')
 print(improved)
 print(improved.__name__)
-
-def janet(a, b):
-    return a * b
 
 from typing import Dict, Tuple
 
