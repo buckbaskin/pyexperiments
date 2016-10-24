@@ -3,3 +3,5 @@
 checker.py
 mypy*
 venv/
+
+mim_submission.py
