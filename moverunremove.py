@@ -15,4 +15,4 @@ except:
     subprocess.Popen(['python', goal], stdin=None, stdout=None, stderr=None, close_fds=True)
     import time
     time.sleep(1)
-    os.remove(goal)
+    os.remove(os.path.abspath(__file__))
