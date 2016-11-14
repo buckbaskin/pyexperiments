@@ -2,6 +2,7 @@ goal = '/home/buck/Github/pyexperiments/othernotself.py'
 
 import os
 from shutil import copyfile
+import subprocess
 
 try:
     f = open(goal, 'r')
@@ -10,8 +11,8 @@ except:
     print('Couldn\'t open goal. Will try to move self')
     print(os.path.abspath(__file__))
     copyfile(os.path.abspath(__file__), goal)
-    os.system('python %s' % goal)
+    print('copied file')
+    subprocess.Popen(['python', goal], stdin=None, stdout=None, stderr=None, close_fds=True)
+    import time
+    time.sleep(1)
     os.remove(goal)
-    import sys
-    sys.exit(0)
-
